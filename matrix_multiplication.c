@@ -7,16 +7,18 @@ typedef struct Int2DMatrix{
 } Int2DMatrix;
 
 int image_kernel_filter(int *image, int *kernel, int length);
+
 int ** get_2d_matrix(int a, int b);
 int ** get_transpose_2d_matrix(int **m, int r, int c);
-void print_matrix(int **m, int r, int c);
 int dot_product(int *a, int *b, int size);
+int ** multply_matrix(int **A, int a_rows, int a_cols, int **B, int b_rows, int b_cols);
+
+void print_matrix(int **m, int r, int c);
 
 int main(int *argc, char **argv)
 {
-    Int2DMatrix int_matriz_a;
 
-    int **matriz_a, **matriz_b, **matriz_b_transposta, **matriz_resposta;
+    int **matriz_a, **matriz_b, **matriz_resposta;
     int row_a, row_b, col_a, col_b;
     int contador;
 
@@ -25,7 +27,6 @@ int main(int *argc, char **argv)
     row_b = 3;
     col_b = 2;
 
-    matriz_resposta = get_2d_matrix(row_a, col_b);
     matriz_a = get_2d_matrix(row_a, col_a);
     matriz_b = get_2d_matrix(row_b, col_b);
 
@@ -49,11 +50,8 @@ int main(int *argc, char **argv)
         }
     }
 
-    matriz_b_transposta = get_transpose_2d_matrix(matriz_b, row_b, col_b);
-
     print_matrix(matriz_a, row_a, col_a);
     print_matrix(matriz_b, row_b, col_b);
-    print_matrix(matriz_b_transposta, col_b, row_b);
 
     if (col_a != row_b)
     {
@@ -61,16 +59,7 @@ int main(int *argc, char **argv)
         return 0;
     }
 
-    //multiplicar
-    for(int i = 0; i < row_a; i++)
-    {
-        for (int j = 0; j < col_b; j++)
-        {
-            printf("%d:%d\n", i, j);
-            matriz_resposta[i][j] = dot_product(matriz_a[i], matriz_b_transposta[j], col_a);
-        }
-    }
-
+    matriz_resposta = multply_matrix(matriz_a, row_a, col_a, matriz_b, row_b, col_b);
     print_matrix(matriz_resposta, row_a, col_b);
     return 0;
 }
@@ -118,6 +107,24 @@ int dot_product(int *a, int *b, int size)
         resultado+= a[i] * b[i];
     }
     return resultado;
+}
+
+int ** multply_matrix(int **matriz_a, int a_rows, int a_cols, int **matriz_b, int b_rows, int b_cols)
+{
+    int **matriz_b_transposta, **matriz_resposta;
+
+    matriz_resposta = get_2d_matrix(a_rows, b_cols);
+    matriz_b_transposta = get_transpose_2d_matrix(matriz_b, b_rows, b_cols);
+
+    for(int i = 0; i < a_rows; i++)
+    {
+        for (int j = 0; j < b_cols; j++)
+        {
+            matriz_resposta[i][j] = dot_product(matriz_a[i], matriz_b_transposta[j], a_cols);
+        }
+    }
+
+    return matriz_resposta;
 }
 
 void print_matrix(int **m, int r, int c)
