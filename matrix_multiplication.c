@@ -6,7 +6,7 @@ typedef struct Int2DMatrix{
     int **elements;
 } Int2DMatrix;
 
-
+int image_kernel_filter(int *image, int *kernel, int length);
 int ** get_2d_matrix(int a, int b);
 int ** get_transpose_2d_matrix(int **m, int r, int c);
 void print_matrix(int **m, int r, int c);
@@ -131,4 +131,22 @@ void print_matrix(int **m, int r, int c)
         }
         printf("\n");
     }
+}
+
+int image_kernel_filter(int *image, int *kernel, int length)
+{
+    int soma;
+    soma = 0;
+
+    if (length == 0)
+    {
+        return 0;
+    }
+    
+    for (int i = 0; i < length; i++)
+    {
+        soma+= image[i] * kernel[i];
+    }
+
+    return soma/length;
 }
