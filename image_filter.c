@@ -12,10 +12,24 @@ int main()
 
     kernel = get_array(kernel_length);
 
-    imagem_width = 24;
-    imagem_height = 24;
+    for ( int i = 0; i < kernel_length; i++)
+    {
+        kernel[i] = i;
+    }
 
+    imagem_width = 12;
+    imagem_height = 12;
+
+    print_array(kernel, kernel_length);
     imagem = get_2d_matrix(imagem_width, imagem_height);
+    
+    for ( int i = 0; i < imagem_width; i++)
+    {
+        for ( int j = 0; j < imagem_height; j ++)
+        {
+            imagem[i][j] = 1;
+        }
+    }
 
     print_matrix(imagem, imagem_width, imagem_height);
     
