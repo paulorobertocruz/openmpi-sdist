@@ -147,21 +147,18 @@ int ** image_kernel_filter(int **image, int image_width, int image_height, int *
     {
         for ( int j = 0; j < image_height; j++)
         {
-            
             coeficient = 0;
             contador_pixels = 0;
             //pega os valores para aplicar o filtro
-            for (int k = i - 1; k < kernel_size; k++)
+            for (int k = i - 1; k < i - 1 + kernel_size; k++)
             {
-                for ( int w = j-1; w < kernel_size; w++)
+                for ( int w = j-1; w < j - 1 + kernel_size; w++)
                 {
-
                     //verifica se o pixel existe
                     if( k >= 0 && w >= 0 && k < image_width && w < image_height)
                     {
                         coeficient ++;
                         pixels[contador_pixels] = image[k][w];
-
                     }
                     else
                     {
