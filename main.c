@@ -110,7 +110,6 @@ int main(int argc, char** argv) {
         //não coloca o master na lista de nos a receber tarefas
         for( int i = offset; i < world_size; i++)
         {
-            printf("NO: %d\n", i);
             total_pixels = pixels_por_no;
 
             if( i == offset)
@@ -119,10 +118,7 @@ int main(int argc, char** argv) {
                 total_pixels += pixels_sobra;
             }
 
-            printf("--> TOTAL DE PIXELS: %d\n", total_pixels);
-
             send_array_size = (total_pixels * (kernel_length + 3)) + kernel_length + 2;
-            printf("--> SEND_ARRAY_SIZE: %d\n", send_array_size);
 
             send_array = get_array(send_array_size);
             
@@ -186,9 +182,6 @@ int main(int argc, char** argv) {
 
             contador_pixels_global += total_pixels;
 
-            //printf("SEND_ARRAY:\n");
-            //print_array(send_array, send_array_size);
-
             //manda o tamanho do array
             MPI_Send(&send_array_size, 1, MPI_INT, i, TAG_OPERATION, MPI_COMM_WORLD);
 
@@ -205,7 +198,6 @@ int main(int argc, char** argv) {
             MPI_Recv(&recive_array_size, 1, MPI_INT, i, TAG_OPERATION, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         
             recive_array = get_array(recive_array_size);
-            printf("RECEBEU: ********************************************************>>>>>>> %d\n", i);
 
             MPI_Recv(&recive_array[0], recive_array_size, MPI_INT, i, TAG_OPERATION, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             
@@ -219,42 +211,35 @@ int main(int argc, char** argv) {
                 novo_pixel = recive_array[(j * 3) + 2];
                 imagem_resultante[x][y] = novo_pixel;
             }
-            print_matrix(imagem_resultante, imagem_width, imagem_height);
 
         }
 
         //resultado
         printf("RESULTADOS:\n");
+        
+        printf("Imagem Original:\n");
         print_matrix(imagem, imagem_width, imagem_height);
 
+        printf("Imagem Resultante:\n");
         print_matrix(imagem_resultante, imagem_width, imagem_height);
 
     }
     else
     {
         //slave
-
-        printf("SLAVE\n");
-
         int recive_array_size, *recive_array, *send_back_array, send_back_array_length, kernel_length, *kernel, total_pixels;
 
         MPI_Recv(&recive_array_size, 1, MPI_INT, MASTER_RANK, TAG_OPERATION, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
-        printf("RECIVE_ARRAY_SIZE: %d\n", recive_array_size);
-        
         recive_array = get_array(recive_array_size);
 
         MPI_Recv(&recive_array[0], recive_array_size, MPI_INT, MASTER_RANK, TAG_OPERATION, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         
-        printf("RECIVE_ARRAY:\n");
-        print_array(recive_array, recive_array_size);
-
         
         total_pixels = recive_array[0];
-        printf("TOTAL_PIXELS: %d\n", total_pixels);
 
         kernel_length = recive_array[1];
-        printf("KERNEL_LENGTH: %d\n", kernel_length);
+
         kernel = get_array(kernel_length);
 
         int pixel_offset;
@@ -262,8 +247,6 @@ int main(int argc, char** argv) {
 
         int pixel_multiple;
         pixel_multiple = kernel_length + 3; // 1 para x + 1 para y + 1 para coeficiente + kernel_length para pixels
-
-        printf("PIXEL_OFFSET: %d - PIXEL_MULTIPLE: %d\n", pixel_offset, pixel_multiple);
 
         //array de resposta
         send_back_array_length = 3 * total_pixels;
@@ -273,10 +256,6 @@ int main(int argc, char** argv) {
         {
             kernel[i] = recive_array[i + 2];
         }
-
-        printf("KERNEL:\n");
-        print_array(kernel, kernel_length);
-
         
         int coeficiente, *pixels, x, y;
         
@@ -287,27 +266,18 @@ int main(int argc, char** argv) {
         for ( int cp = 0; cp < total_pixels; cp++)
         {
             local_offset = pixel_offset + (pixel_multiple * cp);
-            printf("PIXEL_OFFSET: %d - PIXEL_MULTIPLE: %d\n", pixel_offset, pixel_multiple);
-
-            printf("LOCAL_OFFSET: %d\n", local_offset);
             x = recive_array[local_offset];
             y = recive_array[local_offset + 1];
-            printf("X: %d Y: %d\n", x, y);
 
             coeficiente = recive_array[local_offset + 2];
-            printf("COEFICIENTE: %d \n", coeficiente);
 
             for (int i = 0; i < kernel_length; i ++)
             {
                 pixels[i] = recive_array[i + local_offset + 3];
             }
             //pixels, kernel, kernel_length, coeficiente
-            printf("PIXELS:\n");
-            print_array(pixels, kernel_length);
-
             int novo_pixel;
             novo_pixel = pixel_kernel_filter(pixels, kernel, kernel_length, coeficiente);
-            printf("NOVO PIXEL: %d\n", novo_pixel);
             send_back_array[(cp * 3)] = x;
             send_back_array[(cp * 3) + 1] = y;
             send_back_array[(cp * 3) + 2] = novo_pixel;
@@ -320,10 +290,6 @@ int main(int argc, char** argv) {
         MPI_Send(send_back_array, send_back_array_length, MPI_INT, MASTER_RANK, TAG_OPERATION, MPI_COMM_WORLD);
 
     }
-
-
-    printf("Tem que existir no minimo 2 processos!");
-
     // Finalize the MPI environment.
     MPI_Finalize();
 }
