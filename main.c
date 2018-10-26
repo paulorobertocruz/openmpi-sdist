@@ -26,33 +26,80 @@ int main(int argc, char** argv) {
     MPI_Get_processor_name(processor_name, &name_len);
 
     // Print off a hello world message
-    printf("Hello world from processor %s, rank %d out of %d processors\n", processor_name, world_rank, world_size);
+    //printf("Hello world from processor %s, rank %d out of %d processors\n", processor_name, world_rank, world_size);
 
     if(MASTER_RANK == world_rank)
     {
         //master
 
-        int **imagem, imagem_width, imagem_height, pixels;
-        int **imagem_resultante;
-        int *kernel, kernel_size, kernel_length;
+        int escravos;
+        escravos = world_size - 1;
+
+        printf("ESCRAVOS: %d\n", escravos);
+
+        int **imagem;
+
+        int imagem_width;
+        imagem_width = 6;
         
+        int imagem_height;
+        imagem_height = 6;
+
+        printf("WIDTH: %d HEIGHT: %d\n", imagem_width, imagem_height);
+
+        imagem = get_2d_matrix(imagem_width, imagem_height);
+
+        for ( int c = 0; c < imagem_width; c++)
+        {
+            for ( int v = 0; v < imagem_height; v++)
+            {
+                imagem[c][v] = 1;
+            }
+        }
+
+        printf("IMAGEM:\n");
+        print_matrix(imagem, imagem_width, imagem_height);
+
+        int **imagem_resultante;
+        imagem_resultante = get_2d_matrix(imagem_width, imagem_height);
+
+        printf("IMAGEM RESULTANTE ANTES:\n");
+        print_matrix(imagem_resultante, imagem_width, imagem_height);
+
+        int kernel_size, kernel_length;
         kernel_size = 3;
         kernel_length = kernel_size * kernel_size;
 
-        int offset = 1;
-        int pixels_por_no, pixels_sobra;
-
-        pixels = imagem_width * imagem_height;
-        pixels_por_no = pixels / (world_size - offset);
-        pixels_sobra = pixels % (world_size - offset);
-
-        imagem = get_2d_matrix(imagem_width, imagem_height);
-        imagem_resultante = get_2d_matrix(imagem_width, imagem_height);
+        int *kernel;
         kernel = get_array(kernel_length);
 
-        int contador_pixels_global = 0;
+        for ( int c = 0; c < kernel_length; c++)
+        {
+            kernel[c] = c;
+        }
 
-        int total_pixels, pixel, x, y, send_array_size, *send_array, contador_send_array;
+        printf("KERNEL:\n");
+        print_array(kernel, kernel_length);
+
+        int offset = 1;
+
+        int pixels_da_imagem;
+        pixels_da_imagem = imagem_width * imagem_height;
+
+        printf("PIXELS: %d\n", pixels_da_imagem);
+        
+        int pixels_por_no;
+        pixels_por_no = pixels_da_imagem / escravos;
+        printf("PIXELS por NO: %d\n", pixels_por_no);
+        
+        int pixels_sobra;
+        pixels_sobra = pixels_da_imagem % escravos;
+        printf("PIXELS SOBRA: %d\n", pixels_sobra);
+
+        int contador_pixels_global;
+        contador_pixels_global = 0;
+
+        int total_pixels, x, y, send_array_size, *send_array, contador_send_array;
 
         int *pixels;
 
@@ -61,8 +108,9 @@ int main(int argc, char** argv) {
         pixels = get_array(kernel_length);
 
         //não coloca o master na lista de nos a receber tarefas
-        for( int i = offset; i < world_size, i++)
+        for( int i = offset; i < world_size; i++)
         {
+            printf("NO: %d\n", i);
             total_pixels = pixels_por_no;
 
             if( i == offset)
@@ -71,12 +119,19 @@ int main(int argc, char** argv) {
                 total_pixels += pixels_sobra;
             }
 
-            send_array_size = (total_pixels * kernel_length + 3) + kernel_length + 2;
+            printf("--> TOTAL DE PIXELS: %d\n", total_pixels);
+
+            send_array_size = (total_pixels * (kernel_length + 3)) + kernel_length + 2;
+            printf("--> SEND_ARRAY_SIZE: %d\n", send_array_size);
+
             send_array = get_array(send_array_size);
+            
             send_array[0] = total_pixels;
             send_array[1] = kernel_length;
+
             contador_send_array = 2;
 
+            //carrega kernel no array
             for( int c = 0; c < kernel_length; c++)
             {
                 send_array[c + contador_send_array] = kernel[c];
@@ -85,9 +140,11 @@ int main(int argc, char** argv) {
 
             for (int j = 0; j < total_pixels; j ++ )
             {
+                int pixel;
                 pixel = j + contador_pixels_global;
-                x = (pixel / imagem_width) - 1;
-                y = (pixel / imagem_height) - 1;
+
+                x = (pixel / imagem_width);
+                y = (pixel % imagem_height);
 
                 //armazena x, y
                 send_array[contador_send_array] = x;
@@ -129,25 +186,28 @@ int main(int argc, char** argv) {
 
             contador_pixels_global += total_pixels;
 
+            //printf("SEND_ARRAY:\n");
+            //print_array(send_array, send_array_size);
 
             //manda o tamanho do array
             MPI_Send(&send_array_size, 1, MPI_INT, i, TAG_OPERATION, MPI_COMM_WORLD);
 
             //manda o array
-            MPI_Send(&send_array, send_array_size, MPI_INT, i, TAG_OPERATION, MPI_COMM_WORLD);
+            MPI_Send(send_array, send_array_size, MPI_INT, i, TAG_OPERATION, MPI_COMM_WORLD);
 
         }
 
         // recebe respostas
-        for( int i = offset; i < world_size, i++)
+        for( int i = offset; i < world_size; i++)
         {
             int recive_array_size, *recive_array;
 
-            MPI_Recv(&recive_array_size, 1, MPI_INT, RANK_MASTER, TAG_OPERATION, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(&recive_array_size, 1, MPI_INT, i, TAG_OPERATION, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
         
             recive_array = get_array(recive_array_size);
+            printf("RECEBEU: ********************************************************>>>>>>> %d\n", i);
 
-            MPI_Recv(&recive_array[0], recive_array_size, MPI_INT, RANK_MASTER, TAG_OPERATION, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(&recive_array[0], recive_array_size, MPI_INT, i, TAG_OPERATION, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             
 
             int x, y, novo_pixel;
@@ -159,10 +219,12 @@ int main(int argc, char** argv) {
                 novo_pixel = recive_array[(j * 3) + 2];
                 imagem_resultante[x][y] = novo_pixel;
             }
+            print_matrix(imagem_resultante, imagem_width, imagem_height);
 
         }
 
         //resultado
+        printf("RESULTADOS:\n");
         print_matrix(imagem, imagem_width, imagem_height);
 
         print_matrix(imagem_resultante, imagem_width, imagem_height);
@@ -172,17 +234,36 @@ int main(int argc, char** argv) {
     {
         //slave
 
+        printf("SLAVE\n");
+
         int recive_array_size, *recive_array, *send_back_array, send_back_array_length, kernel_length, *kernel, total_pixels;
 
-        MPI_Recv(&recive_array_size, 1, MPI_INT, RANK_MASTER, TAG_OPERATION, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(&recive_array_size, 1, MPI_INT, MASTER_RANK, TAG_OPERATION, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+
+        printf("RECIVE_ARRAY_SIZE: %d\n", recive_array_size);
         
         recive_array = get_array(recive_array_size);
 
-        MPI_Recv(&recive_array[0], recive_array_size, MPI_INT, RANK_MASTER, TAG_OPERATION, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        MPI_Recv(&recive_array[0], recive_array_size, MPI_INT, MASTER_RANK, TAG_OPERATION, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+        
+        printf("RECIVE_ARRAY:\n");
+        print_array(recive_array, recive_array_size);
+
         
         total_pixels = recive_array[0];
+        printf("TOTAL_PIXELS: %d\n", total_pixels);
+
         kernel_length = recive_array[1];
+        printf("KERNEL_LENGTH: %d\n", kernel_length);
         kernel = get_array(kernel_length);
+
+        int pixel_offset;
+        pixel_offset = kernel_length + 2; // 1 para total de pixels + 1 para tamanho do kernel + kernel_length para o kernel 
+
+        int pixel_multiple;
+        pixel_multiple = kernel_length + 3; // 1 para x + 1 para y + 1 para coeficiente + kernel_length para pixels
+
+        printf("PIXEL_OFFSET: %d - PIXEL_MULTIPLE: %d\n", pixel_offset, pixel_multiple);
 
         //array de resposta
         send_back_array_length = 3 * total_pixels;
@@ -190,46 +271,53 @@ int main(int argc, char** argv) {
 
         for (int i = 0; i < kernel_length; i ++)
         {
-            kernel[i] = recive_array[i + 1];
+            kernel[i] = recive_array[i + 2];
         }
 
-        int contador_pixels, coeficiente, *pixels, contador_resposta, x, y;
+        printf("KERNEL:\n");
+        print_array(kernel, kernel_length);
+
+        
+        int coeficiente, *pixels, x, y;
         
         pixels = get_array(kernel_length);
 
-        contador_pixels = kernel_length + 2;
-        contador_resposta = 0;
+        int local_offset = 0;
 
-        while( contador_pixels < recive_array_size)
+        for ( int cp = 0; cp < total_pixels; cp++)
         {
-            x = recive_array[contador_pixels];
-            y = recive_array[contador_pixels + 1];
+            local_offset = pixel_offset + (pixel_multiple * cp);
+            printf("PIXEL_OFFSET: %d - PIXEL_MULTIPLE: %d\n", pixel_offset, pixel_multiple);
 
-            coeficiente = recive_array[contador_pixels + 2];
+            printf("LOCAL_OFFSET: %d\n", local_offset);
+            x = recive_array[local_offset];
+            y = recive_array[local_offset + 1];
+            printf("X: %d Y: %d\n", x, y);
+
+            coeficiente = recive_array[local_offset + 2];
+            printf("COEFICIENTE: %d \n", coeficiente);
+
             for (int i = 0; i < kernel_length; i ++)
             {
-                pixels[i] = recive_array[i + contador_pixels + 3];
+                pixels[i] = recive_array[i + local_offset + 3];
             }
             //pixels, kernel, kernel_length, coeficiente
+            printf("PIXELS:\n");
+            print_array(pixels, kernel_length);
 
             int novo_pixel;
-            novo_pixel = pixel_kernel_filter(pixels, kernel, kernel_length, coeficiente)
-
-            send_back_array[contador_resposta] = x;
-            send_back_array[contador_resposta] = y;
-            send_back_array[contador_resposta] = novo_pixel;
-            
-            //incrementa contadores
-            contador_resposta += 3;
-            contador_pixels = kernel_length + 3;
-
+            novo_pixel = pixel_kernel_filter(pixels, kernel, kernel_length, coeficiente);
+            printf("NOVO PIXEL: %d\n", novo_pixel);
+            send_back_array[(cp * 3)] = x;
+            send_back_array[(cp * 3) + 1] = y;
+            send_back_array[(cp * 3) + 2] = novo_pixel;
         }
 
         //manda o tamanho do array
         MPI_Send(&send_back_array_length, 1, MPI_INT, MASTER_RANK, TAG_OPERATION, MPI_COMM_WORLD);
 
         //manda o array
-        MPI_Send(&send_back_array, send_back_array_length, MPI_INT, MASTER_RANK, TAG_OPERATION, MPI_COMM_WORLD);
+        MPI_Send(send_back_array, send_back_array_length, MPI_INT, MASTER_RANK, TAG_OPERATION, MPI_COMM_WORLD);
 
     }
 
