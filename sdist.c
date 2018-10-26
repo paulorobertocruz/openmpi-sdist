@@ -6,7 +6,6 @@
 //---------------------------------------------------------
 void print_matrix(int **m, int r, int c)
 {
-    printf("matrix:\n");
     for( int i = 0; i < r; i++)
     {
         for (int j = 0; j < c; j++)
