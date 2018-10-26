@@ -1,10 +1,10 @@
-EXECUTAVEL=teste
+EXECUTAVEL=main.out
 MPICC=mpicc
 
 all: ${EXECUTAVEL}
 
-main: teste.c
-	${MPICC} -o teste teste.c
+main.out: main.c sdist.o
+	${MPICC} -o ${EXECUTAVEL} sdist.o main.c
 
 clean:
 	rm -f ${EXECUTAVEL} sdist.o image_filter.out
@@ -12,5 +12,5 @@ clean:
 image_filter: sdist.o
 	gcc -o image_filter.out sdist.o image_filter.c
 
-sdist.o:
+sdist.o: sdist.c
 	gcc -c sdist.c
