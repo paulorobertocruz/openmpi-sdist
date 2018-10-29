@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
         {
             for ( int v = 0; v < imagem_height; v++)
             {
-                imagem[c][v] = c;
+                imagem[c][v] = 1;
             }
         }
 
@@ -74,7 +74,7 @@ int main(int argc, char** argv) {
         {
             kernel[c] = c;
         }
-
+        /*
         kernel[0] = 1;
         kernel[1] = 1;
         kernel[2] = 1;
@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
         kernel[6] = 1;
         kernel[7] = 1;
         kernel[8] = 1;
-
+        */
         printf("KERNEL:\n");
         print_array(kernel, kernel_length);
 
